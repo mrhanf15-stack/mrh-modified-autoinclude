@@ -1,0 +1,305 @@
+/* ============================================================
+   MRH Base CSS
+   Version: 1.0.0
+   Datum: 2026-04-02
+   Abhaengigkeiten: Bootstrap 5.3.0
+   
+   Beschreibung:
+   CSS Custom Properties, Typography, Reset und Basis-Utilities.
+   Wird auf ALLEN Seiten geladen.
+   ============================================================ */
+
+/* ---------------------------------------------------------------
+   1. CSS Custom Properties (Design Tokens)
+   --------------------------------------------------------------- */
+:root {
+  /* Primaerfarben */
+  --mrh-green: #16A34A;
+  --mrh-green-dk: #15803D;
+  --mrh-green-lt: #22C55E;
+  --mrh-green-bg: #F0FDF4;
+
+  /* Sekundaerfarben */
+  --mrh-orange: #F59E0B;
+  --mrh-orange-dk: #D97706;
+  --mrh-red: #EF4444;
+  --mrh-red-dk: #DC2626;
+  --mrh-blue: #3B82F6;
+  --mrh-blue-dk: #2563EB;
+
+  /* Neutralfarben */
+  --mrh-slate-50: #F8FAFC;
+  --mrh-slate-100: #F1F5F9;
+  --mrh-slate-200: #E2E8F0;
+  --mrh-slate-300: #CBD5E1;
+  --mrh-slate-400: #94A3B8;
+  --mrh-slate-500: #64748B;
+  --mrh-slate-600: #475569;
+  --mrh-slate-700: #334155;
+  --mrh-slate-800: #1E293B;
+  --mrh-slate-900: #0F172A;
+
+  /* Typography */
+  --mrh-font-primary: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --mrh-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Spacing */
+  --mrh-gap-xs: 0.25rem;
+  --mrh-gap-sm: 0.5rem;
+  --mrh-gap-md: 1rem;
+  --mrh-gap-lg: 1.5rem;
+  --mrh-gap-xl: 2rem;
+  --mrh-gap-2xl: 3rem;
+
+  /* Border Radius */
+  --mrh-radius-sm: 0.375rem;
+  --mrh-radius-md: 0.5rem;
+  --mrh-radius-lg: 0.75rem;
+  --mrh-radius-xl: 1rem;
+  --mrh-radius-full: 9999px;
+
+  /* Shadows */
+  --mrh-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --mrh-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --mrh-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+
+  /* Transitions */
+  --mrh-transition-fast: 150ms ease;
+  --mrh-transition-normal: 250ms ease;
+  --mrh-transition-slow: 350ms ease;
+}
+
+/* ---------------------------------------------------------------
+   2. Typography
+   --------------------------------------------------------------- */
+.mrh-font-primary {
+  font-family: var(--mrh-font-primary);
+}
+
+.mrh-heading-xl {
+  font-family: var(--mrh-font-primary);
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--mrh-slate-900);
+}
+
+.mrh-heading-lg {
+  font-family: var(--mrh-font-primary);
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--mrh-slate-900);
+}
+
+.mrh-heading-md {
+  font-family: var(--mrh-font-primary);
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--mrh-slate-800);
+}
+
+.mrh-text-body {
+  font-family: var(--mrh-font-primary);
+  font-size: 0.9375rem;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--mrh-slate-600);
+}
+
+.mrh-text-small {
+  font-family: var(--mrh-font-primary);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--mrh-slate-500);
+}
+
+.mrh-text-caption {
+  font-family: var(--mrh-font-primary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--mrh-slate-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ---------------------------------------------------------------
+   3. Buttons
+   --------------------------------------------------------------- */
+.mrh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mrh-gap-sm);
+  padding: 0.625rem 1.25rem;
+  font-family: var(--mrh-font-primary);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1;
+  border: none;
+  border-radius: var(--mrh-radius-md);
+  cursor: pointer;
+  transition: all var(--mrh-transition-fast);
+  text-decoration: none;
+}
+
+.mrh-btn:focus-visible {
+  outline: 2px solid var(--mrh-green);
+  outline-offset: 2px;
+}
+
+.mrh-btn-primary {
+  background-color: var(--mrh-green);
+  color: #fff;
+}
+
+.mrh-btn-primary:hover {
+  background-color: var(--mrh-green-dk);
+  color: #fff;
+}
+
+.mrh-btn-outline {
+  background-color: transparent;
+  color: var(--mrh-slate-700);
+  border: 1px solid var(--mrh-slate-300);
+}
+
+.mrh-btn-outline:hover {
+  background-color: var(--mrh-slate-50);
+  border-color: var(--mrh-slate-400);
+  color: var(--mrh-slate-900);
+}
+
+.mrh-btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.mrh-btn-lg {
+  padding: 0.875rem 1.75rem;
+  font-size: 1rem;
+}
+
+.mrh-btn-block {
+  display: flex;
+  width: 100%;
+}
+
+/* ---------------------------------------------------------------
+   4. Badges / Chips
+   --------------------------------------------------------------- */
+.mrh-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  font-family: var(--mrh-font-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  border-radius: var(--mrh-radius-full);
+  white-space: nowrap;
+}
+
+.mrh-badge-green {
+  background-color: var(--mrh-green-bg);
+  color: var(--mrh-green-dk);
+}
+
+.mrh-badge-orange {
+  background-color: #FEF3C7;
+  color: var(--mrh-orange-dk);
+}
+
+.mrh-badge-blue {
+  background-color: #EFF6FF;
+  color: var(--mrh-blue-dk);
+}
+
+.mrh-badge-slate {
+  background-color: var(--mrh-slate-100);
+  color: var(--mrh-slate-600);
+}
+
+/* ---------------------------------------------------------------
+   5. Cards
+   --------------------------------------------------------------- */
+.mrh-card {
+  background-color: #fff;
+  border: 1px solid var(--mrh-slate-200);
+  border-radius: var(--mrh-radius-lg);
+  padding: var(--mrh-gap-lg);
+  box-shadow: var(--mrh-shadow-sm);
+}
+
+.mrh-card-hover {
+  transition: all var(--mrh-transition-normal);
+}
+
+.mrh-card-hover:hover {
+  box-shadow: var(--mrh-shadow-md);
+  transform: translateY(-2px);
+}
+
+/* ---------------------------------------------------------------
+   6. Stars (Bewertung)
+   --------------------------------------------------------------- */
+.mrh-stars {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.mrh-star {
+  width: 1rem;
+  height: 1rem;
+  color: var(--mrh-slate-300);
+}
+
+.mrh-star-filled {
+  color: var(--mrh-orange);
+}
+
+.mrh-star-half {
+  color: var(--mrh-orange);
+}
+
+/* ---------------------------------------------------------------
+   7. Utilities
+   --------------------------------------------------------------- */
+.mrh-divider {
+  border: none;
+  border-top: 1px solid var(--mrh-slate-200);
+  margin: var(--mrh-gap-lg) 0;
+}
+
+.mrh-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mrh-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ---------------------------------------------------------------
+   8. Responsive Breakpoints (Referenz)
+   Bootstrap 5.3.0 Breakpoints:
+   - xs: 0
+   - sm: 576px
+   - md: 768px
+   - lg: 992px
+   - xl: 1200px
+   - xxl: 1400px
+   --------------------------------------------------------------- */
