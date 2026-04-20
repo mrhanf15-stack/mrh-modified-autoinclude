@@ -9,7 +9,7 @@
  * - AI batch processing (real implementation)
  *
  * @package MRH_Product_Attributes
- * @version 1.1.1
+ * @version 1.1.2
  */
 
 require('includes/application_top.php');
@@ -100,6 +100,21 @@ if ($action === 'save_product' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $saved_langs = 0;
 
+    // Global fields that should be the same across all languages (v1.1.2)
+    // Find the first language that has gender/flowering_type set and use it for all
+    $global_gender = '';
+    $global_flowering_type = '';
+    if (isset($payload['languages']) && is_array($payload['languages'])) {
+        foreach ($payload['languages'] as $_lid => $_ldata) {
+            if (!empty($_ldata['gender']) && empty($global_gender)) {
+                $global_gender = trim($_ldata['gender']);
+            }
+            if (!empty($_ldata['flowering_type']) && empty($global_flowering_type)) {
+                $global_flowering_type = trim($_ldata['flowering_type']);
+            }
+        }
+    }
+
     // Process each language
     if (isset($payload['languages']) && is_array($payload['languages'])) {
         foreach ($payload['languages'] as $lang_id => $lang_data) {
@@ -112,6 +127,14 @@ if ($action === 'save_product' && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (isset($lang_data[$field])) {
                     $data[$field] = trim($lang_data[$field]);
                 }
+            }
+
+            // Propagate global fields to all languages if not set (v1.1.2)
+            if (empty($data['gender']) && !empty($global_gender)) {
+                $data['gender'] = $global_gender;
+            }
+            if (empty($data['flowering_type']) && !empty($global_flowering_type)) {
+                $data['flowering_type'] = $global_flowering_type;
             }
 
             // Custom fields (with dedup: skip labels that match standard fields)
