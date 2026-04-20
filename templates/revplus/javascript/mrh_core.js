@@ -285,9 +285,33 @@ MRH.Utils = {
 };
 
 // ---------------------------------------------------------------
-// 7. Init
+// 7. BS4 → BS5 Data-Attribute Bridge
+// Konvertiert alte BS4-Attribute (data-toggle, data-target,
+// data-parent, data-dismiss) in BS5-Pendants (data-bs-*),
+// damit bestehende Content-HTML-Snippets funktionieren.
+// Laeuft einmalig bei DOMContentLoaded.
+// ---------------------------------------------------------------
+MRH.Utils.bs4Bridge = function() {
+  var map = [
+    ['data-toggle',  'data-bs-toggle'],
+    ['data-target',  'data-bs-target'],
+    ['data-parent',  'data-bs-parent'],
+    ['data-dismiss', 'data-bs-dismiss']
+  ];
+  map.forEach(function(pair) {
+    document.querySelectorAll('[' + pair[0] + ']').forEach(function(el) {
+      if (!el.hasAttribute(pair[1])) {
+        el.setAttribute(pair[1], el.getAttribute(pair[0]));
+      }
+    });
+  });
+};
+
+// ---------------------------------------------------------------
+// 8. Init
 // ---------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
+  MRH.Utils.bs4Bridge();
   MRH.Utils.initLazyLoad();
   MRH.Events.emit('mrh:ready');
 });
