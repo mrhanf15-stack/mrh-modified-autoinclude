@@ -289,7 +289,8 @@ MRH.Utils = {
 // Konvertiert alte BS4-Attribute (data-toggle, data-target,
 // data-parent, data-dismiss) in BS5-Pendants (data-bs-*),
 // damit bestehende Content-HTML-Snippets funktionieren.
-// Laeuft einmalig bei DOMContentLoaded.
+// Nach der Konvertierung werden Bootstrap-Komponenten manuell
+// initialisiert, da BS5 sich bereits vor dieser Bridge geladen hat.
 // ---------------------------------------------------------------
 MRH.Utils.bs4Bridge = function() {
   var map = [
@@ -298,20 +299,79 @@ MRH.Utils.bs4Bridge = function() {
     ['data-parent',  'data-bs-parent'],
     ['data-dismiss', 'data-bs-dismiss']
   ];
+  var converted = [];
   map.forEach(function(pair) {
     document.querySelectorAll('[' + pair[0] + ']').forEach(function(el) {
       if (!el.hasAttribute(pair[1])) {
         el.setAttribute(pair[1], el.getAttribute(pair[0]));
+        converted.push(el);
       }
     });
   });
+
+  // Bootstrap 5 manuell auf konvertierte Elemente initialisieren
+  // (BS5 hat sich bereits initialisiert bevor die Bridge lief)
+  if (typeof bootstrap !== 'undefined' && converted.length > 0) {
+    converted.forEach(function(el) {
+      var toggleType = el.getAttribute('data-bs-toggle');
+      try {
+        if (toggleType === 'collapse') {
+          // Collapse: Click-Handler manuell binden
+          var targetSel = el.getAttribute('data-bs-target');
+          if (targetSel) {
+            var targetEl = document.querySelector(targetSel);
+            if (targetEl && !bootstrap.Collapse.getInstance(targetEl)) {
+              var parentSel = el.getAttribute('data-bs-parent');
+              var opts = { toggle: false };
+              if (parentSel) opts.parent = parentSel;
+              new bootstrap.Collapse(targetEl, opts);
+            }
+            // Click-Handler hinzufuegen
+            el.addEventListener('click', function(e) {
+              e.preventDefault();
+              var collapseInstance = bootstrap.Collapse.getInstance(targetEl)
+                || new bootstrap.Collapse(targetEl, { toggle: false });
+              collapseInstance.toggle();
+              // collapsed-Klasse auf Button toggeln
+              var isShown = targetEl.classList.contains('show');
+              // Timeout damit BS5 die Klasse erst setzen kann
+              setTimeout(function() {
+                if (targetEl.classList.contains('show') || targetEl.classList.contains('collapsing')) {
+                  el.classList.remove('collapsed');
+                  el.setAttribute('aria-expanded', 'true');
+                } else {
+                  el.classList.add('collapsed');
+                  el.setAttribute('aria-expanded', 'false');
+                }
+              }, 50);
+            });
+          }
+        } else if (toggleType === 'modal') {
+          new bootstrap.Modal(document.querySelector(el.getAttribute('data-bs-target')));
+        } else if (toggleType === 'tab') {
+          new bootstrap.Tab(el);
+        }
+      } catch (err) {
+        // Stille Fehlerbehandlung – Element ggf. schon initialisiert
+      }
+    });
+  }
 };
 
 // ---------------------------------------------------------------
 // 8. Init
 // ---------------------------------------------------------------
-document.addEventListener('DOMContentLoaded', () => {
-  MRH.Utils.bs4Bridge();
-  MRH.Utils.initLazyLoad();
-  MRH.Events.emit('mrh:ready');
-});
+// Init: Sofort ausfuehren wenn DOM bereits ready, sonst auf DOMContentLoaded warten
+(function() {
+  function init() {
+    MRH.Utils.bs4Bridge();
+    MRH.Utils.initLazyLoad();
+    MRH.Events.emit('mrh:ready');
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    // DOM ist bereits geladen (Script am Ende der Seite)
+    init();
+  }
+})();
