@@ -1,8 +1,8 @@
 /**
  * MRH Core JavaScript
- * Version: 1.0.0
- * Datum: 2026-04-02
- * Abhaengigkeiten: Bootstrap 5.3.0
+ * Version: 1.1.0
+ * Datum: 2026-04-20
+ * Abhaengigkeiten: KEINE (reines Vanilla JS)
  *
  * Beschreibung:
  * Globaler MRH Namespace, Event-System, Utility-Funktionen.
@@ -22,7 +22,7 @@ window.MRH = MRH;
 /**
  * Versionsinformation
  */
-MRH.version = '1.0.0';
+MRH.version = '1.1.0';
 
 // ---------------------------------------------------------------
 // 2. Event-System (Pub/Sub)
@@ -285,74 +285,150 @@ MRH.Utils = {
 };
 
 // ---------------------------------------------------------------
-// 7. BS4 → BS5 Data-Attribute Bridge
-// Konvertiert alte BS4-Attribute (data-toggle, data-target,
-// data-parent, data-dismiss) in BS5-Pendants (data-bs-*),
-// damit bestehende Content-HTML-Snippets funktionieren.
-// Nach der Konvertierung werden Bootstrap-Komponenten manuell
-// initialisiert, da BS5 sich bereits vor dieser Bridge geladen hat.
+// 7. Vanilla JS Accordion / Collapse Handler
 // ---------------------------------------------------------------
-MRH.Utils.bs4Bridge = function() {
-  var map = [
-    ['data-toggle',  'data-bs-toggle'],
-    ['data-target',  'data-bs-target'],
-    ['data-parent',  'data-bs-parent'],
-    ['data-dismiss', 'data-bs-dismiss']
-  ];
-  var converted = [];
-  map.forEach(function(pair) {
-    document.querySelectorAll('[' + pair[0] + ']').forEach(function(el) {
-      if (!el.hasAttribute(pair[1])) {
-        el.setAttribute(pair[1], el.getAttribute(pair[0]));
-        converted.push(el);
+// Ersetzt die BS4→BS5 Bridge komplett.
+// Reagiert auf data-toggle="collapse" (BS4-Syntax aus CMS-Content)
+// und implementiert Collapse-Logik in reinem Vanilla JS.
+// Keinerlei Abhaengigkeit von Bootstrap Collapse JS.
+// ---------------------------------------------------------------
+MRH.Collapse = {
+
+  /** Animations-Dauer in ms */
+  DURATION: 350,
+
+  /**
+   * Initialisierung: Event-Delegation auf document
+   * Faengt alle Klicks auf [data-toggle="collapse"] ab
+   */
+  init: function() {
+    // Event-Delegation: ein einziger Listener auf document
+    document.addEventListener('click', function(e) {
+      // Finde den naechsten Button/Link mit data-toggle="collapse"
+      var trigger = e.target.closest('[data-toggle="collapse"]');
+      if (!trigger) return;
+
+      e.preventDefault();
+
+      var targetSel = trigger.getAttribute('data-target');
+      if (!targetSel) return;
+
+      var targetEl = document.querySelector(targetSel);
+      if (!targetEl) return;
+
+      var parentSel = trigger.getAttribute('data-parent');
+      var isOpen = targetEl.classList.contains('show');
+
+      // Accordion-Verhalten: andere Panels schliessen
+      if (parentSel && !isOpen) {
+        MRH.Collapse._closeOthers(parentSel, targetSel);
+      }
+
+      // Toggle
+      if (isOpen) {
+        MRH.Collapse._hide(targetEl, trigger);
+      } else {
+        MRH.Collapse._show(targetEl, trigger);
       }
     });
-  });
+  },
 
-  // Bootstrap 5 manuell auf konvertierte Elemente initialisieren
-  // (BS5 hat sich bereits initialisiert bevor die Bridge lief)
-  if (typeof bootstrap !== 'undefined' && converted.length > 0) {
-    converted.forEach(function(el) {
-      var toggleType = el.getAttribute('data-bs-toggle');
-      try {
-        if (toggleType === 'collapse') {
-          // Collapse: Click-Handler manuell binden
-          var targetSel = el.getAttribute('data-bs-target');
-          if (targetSel) {
-            var targetEl = document.querySelector(targetSel);
-            if (targetEl && !bootstrap.Collapse.getInstance(targetEl)) {
-              var parentSel = el.getAttribute('data-bs-parent');
-              var opts = { toggle: false };
-              if (parentSel) opts.parent = parentSel;
-              new bootstrap.Collapse(targetEl, opts);
-            }
-            // Click-Handler hinzufuegen
-            el.addEventListener('click', function(e) {
-              e.preventDefault();
-              var collapseInstance = bootstrap.Collapse.getInstance(targetEl)
-                || new bootstrap.Collapse(targetEl, { toggle: false });
-              collapseInstance.toggle();
-              // collapsed-Klasse auf Button toggeln
-              var isShown = targetEl.classList.contains('show');
-              // Timeout damit BS5 die Klasse erst setzen kann
-              setTimeout(function() {
-                if (targetEl.classList.contains('show') || targetEl.classList.contains('collapsing')) {
-                  el.classList.remove('collapsed');
-                  el.setAttribute('aria-expanded', 'true');
-                } else {
-                  el.classList.add('collapsed');
-                  el.setAttribute('aria-expanded', 'false');
-                }
-              }, 50);
-            });
-          }
-        } else if (toggleType === 'modal') {
-          new bootstrap.Modal(document.querySelector(el.getAttribute('data-bs-target')));
-        } else if (toggleType === 'tab') {
-          new bootstrap.Tab(el);
-        }
-      } catch (err) {
-        // Stille Fehlerbehandlung – Element ggf. schon initialisiert
+  /**
+   * Panel oeffnen mit Animation
+   * @param {Element} el - Das .collapse Element
+   * @param {Element} trigger - Der Button/Link
+   */
+  _show: function(el, trigger) {
+    // Hoehe messen
+    el.style.display = 'block';
+    el.style.overflow = 'hidden';
+    el.style.height = '0px';
+    el.classList.remove('collapse');
+    el.classList.add('collapsing');
+
+    var scrollH = el.scrollHeight;
+
+    // requestAnimationFrame fuer saubere Animation
+    requestAnimationFrame(function() {
+      el.style.height = scrollH + 'px';
+      el.style.transition = 'height ' + MRH.Collapse.DURATION + 'ms ease';
+    });
+
+    // Nach Animation: Klassen setzen
+    setTimeout(function() {
+      el.classList.remove('collapsing');
+      el.classList.add('collapse', 'show');
+      el.style.height = '';
+      el.style.overflow = '';
+      el.style.display = '';
+      el.style.transition = '';
+    }, MRH.Collapse.DURATION);
+
+    // Trigger-Button aktualisieren
+    trigger.classList.remove('collapsed');
+    trigger.setAttribute('aria-expanded', 'true');
+  },
+
+  /**
+   * Panel schliessen mit Animation
+   * @param {Element} el - Das .collapse Element
+   * @param {Element} trigger - Der Button/Link
+   */
+  _hide: function(el, trigger) {
+    // Aktuelle Hoehe setzen fuer Animation
+    el.style.height = el.scrollHeight + 'px';
+    el.style.overflow = 'hidden';
+    el.classList.remove('collapse', 'show');
+    el.classList.add('collapsing');
+
+    // Auf 0 animieren
+    requestAnimationFrame(function() {
+      el.style.height = '0px';
+      el.style.transition = 'height ' + MRH.Collapse.DURATION + 'ms ease';
+    });
+
+    // Nach Animation: Klassen setzen
+    setTimeout(function() {
+      el.classList.remove('collapsing');
+      el.classList.add('collapse');
+      el.style.height = '';
+      el.style.overflow = '';
+      el.style.display = '';
+      el.style.transition = '';
+    }, MRH.Collapse.DURATION);
+
+    // Trigger-Button aktualisieren
+    trigger.classList.add('collapsed');
+    trigger.setAttribute('aria-expanded', 'false');
+  },
+
+  /**
+   * Accordion: Alle anderen offenen Panels im selben Parent schliessen
+   * @param {string} parentSel - Selektor des Accordion-Containers
+   * @param {string} exceptSel - Selektor des Panels das NICHT geschlossen wird
+   */
+  _closeOthers: function(parentSel, exceptSel) {
+    var parent = document.querySelector(parentSel);
+    if (!parent) return;
+
+    // Alle offenen .collapse.show im Parent finden
+    var openPanels = parent.querySelectorAll('.collapse.show');
+    openPanels.forEach(function(panel) {
+      // Nicht das Panel schliessen das gerade geoeffnet wird
+      if ('#' + panel.id === exceptSel) return;
+
+      // Zugehoerigen Trigger finden
+      var panelTrigger = parent.querySelector(
+        '[data-toggle="collapse"][data-target="#' + panel.id + '"]'
+      );
+
+      if (panelTrigger) {
+        MRH.Collapse._hide(panel, panelTrigger);
+      } else {
+        // Fallback: Direkt schliessen ohne Animation
+        panel.classList.remove('show');
+        panel.style.height = '';
+        panel.style.overflow = '';
       }
     });
   }
@@ -364,7 +440,7 @@ MRH.Utils.bs4Bridge = function() {
 // Init: Sofort ausfuehren wenn DOM bereits ready, sonst auf DOMContentLoaded warten
 (function() {
   function init() {
-    MRH.Utils.bs4Bridge();
+    MRH.Collapse.init();
     MRH.Utils.initLazyLoad();
     MRH.Events.emit('mrh:ready');
   }
