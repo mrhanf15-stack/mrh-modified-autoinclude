@@ -6,7 +6,7 @@
  * for structured product attributes (gender, THC, CBD, cross, etc.)
  *
  * @package MRH_Product_Attributes
- * @version 1.11.1
+ * @version 1.12.0
  */
 
 if (!defined('TABLE_CONFIGURATION')) { return; }
@@ -14,7 +14,7 @@ if (!defined('TABLE_CONFIGURATION')) { return; }
 class MrhProductAttributes {
 
     /** @var string Module version */
-    const VERSION = '1.11.1';
+    const VERSION = '1.12.0';
 
     /** @var string DB table name */
     const TABLE = 'mrh_product_attributes';
@@ -477,9 +477,50 @@ class MrhProductAttributes {
         }
 
         // LISTING/BOX context: Always exactly 3 rows
-        // Phase 1 Non-Seeds: skip mini-table for non-seed products in listing/box
+        // Phase 1 Non-Seeds: show top 3 custom fields (D&D order from backend) instead of Seeds fields
         if (isset($attrs['is_seed']) && (int)$attrs['is_seed'] === 0) {
-            return '';
+            $cf_rows = [];
+
+            // 1. Custom fields from DB (already in D&D-saved order)
+            if (!empty($attrs['custom_fields_decoded']) && is_array($attrs['custom_fields_decoded'])) {
+                foreach ($attrs['custom_fields_decoded'] as $cf) {
+                    if (!empty($cf['value']) && count($cf_rows) < 3) {
+                        $cf_rows[] = '<tr class="custom"><td>' . htmlspecialchars($cf['label'] ?? '') . '</td><td>' . htmlspecialchars($cf['value']) . '</td></tr>';
+                    }
+                }
+            }
+
+            // 2. Fallback: also check standard fields in saved D&D order
+            if (count($cf_rows) < 3) {
+                $products_id = (int)($attrs['products_id'] ?? 0);
+                $ns_fields = [];
+                if ($products_id > 0) {
+                    $saved_order_json = self::getConfig('field_order_' . $products_id);
+                    if (!empty($saved_order_json)) {
+                        $ns_fields = json_decode($saved_order_json, true) ?: [];
+                    }
+                }
+                // Use all standard fields as fallback if no saved order
+                if (empty($ns_fields)) {
+                    $ns_fields = array_keys(self::STANDARD_FIELDS);
+                }
+                foreach ($ns_fields as $field) {
+                    if (count($cf_rows) >= 3) break;
+                    if (!empty($attrs[$field])) {
+                        $value = htmlspecialchars($attrs[$field]);
+                        if (in_array($field, ['gender', 'flowering_type', 'type', 'growing'])) {
+                            $value = self::translateSelectValue($field, $attrs[$field]);
+                        }
+                        $label = isset($field_labels[$field]) ? $field_labels[$field][0] : ucfirst($field);
+                        $tr_class = isset($field_labels[$field]) ? $field_labels[$field][5] : '';
+                        $cf_rows[] = '<tr class="' . htmlspecialchars($tr_class) . '"><td>' . htmlspecialchars($label) . '</td><td>' . $value . '</td></tr>';
+                    }
+                }
+            }
+
+            if (empty($cf_rows)) return '';
+            $class = 'mrh-attr-table mrh-attr-' . $context;
+            return '<table class="' . $class . ' tebals"><tbody>' . implode('', $cf_rows) . '</tbody></table>';
         }
 
         $prio_fields = [
