@@ -38,7 +38,7 @@ if (class_exists('MrhProductAttributes') && isset($module_content) && is_array($
 
     // Phase 1 Non-Seeds: Detect non-seed category from current URL path
     $mrh_pa_current_path = $_SERVER['REQUEST_URI'] ?? '';
-    $mrh_pa_non_seed_paths = ['/growshop/', '/headshop/', '/cannabispflanzen/', '/duenger/', '/erde-substrate/', '/toepfe-behaelter/', '/bewaesserung/', '/beleuchtung/', '/lueftung/', '/zubehoer/', '/vaporizer/', '/grinder/', '/papers/', '/bongs/'];
+    $mrh_pa_non_seed_paths = ['/growshop/', '/headshop/', '/duenger/', '/erde-substrate/', '/toepfe-behaelter/', '/bewaesserung/', '/beleuchtung/', '/lueftung/', '/zubehoer/', '/vaporizer/', '/grinder/', '/papers/', '/bongs/'];
     $mrh_pa_is_non_seed_category = false;
     foreach ($mrh_pa_non_seed_paths as $mrh_pa_nsp) {
         if (strpos($mrh_pa_current_path, $mrh_pa_nsp) !== false) {
