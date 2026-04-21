@@ -6,7 +6,7 @@
  * for structured product attributes (gender, THC, CBD, cross, etc.)
  *
  * @package MRH_Product_Attributes
- * @version 1.10.1
+ * @version 1.11.0
  */
 
 if (!defined('TABLE_CONFIGURATION')) { return; }
@@ -14,7 +14,7 @@ if (!defined('TABLE_CONFIGURATION')) { return; }
 class MrhProductAttributes {
 
     /** @var string Module version */
-    const VERSION = '1.10.1';
+    const VERSION = '1.11.0';
 
     /** @var string DB table name */
     const TABLE = 'mrh_product_attributes';
@@ -477,6 +477,11 @@ class MrhProductAttributes {
         }
 
         // LISTING/BOX context: Always exactly 3 rows
+        // Phase 1 Non-Seeds: skip mini-table for non-seed products in listing/box
+        if (isset($attrs['is_seed']) && (int)$attrs['is_seed'] === 0) {
+            return '';
+        }
+
         $prio_fields = [
             ['key' => 'type',  'label_key' => 'type'],
             ['key' => 'thc',   'label_key' => 'thc'],
