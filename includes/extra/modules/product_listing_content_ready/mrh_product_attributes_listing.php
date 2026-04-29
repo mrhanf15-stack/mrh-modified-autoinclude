@@ -63,12 +63,31 @@ if (class_exists('MrhProductAttributes') && isset($module_content) && is_array($
             continue;
         }
 
-        // 1. Structured badges from DB (if enough fields filled)
+        // 1. Structured badges from DB
         $mrh_pa_struct_badges = '';
-        if ($mrh_pa_attrs && (int)($mrh_pa_attrs['fields_filled'] ?? 0) >= $mrh_pa_min_fields) {
-            $mrh_pa_struct_badges = MrhProductAttributes::buildBadgeHTML($mrh_pa_attrs);
-            $mrh_pa_item['MRH_MINI_TABLE'] = MrhProductAttributes::buildMiniTable($mrh_pa_attrs, 'listing');
-            $mrh_pa_item['MRH_IS_SEED'] = (bool)($mrh_pa_attrs['is_seed'] ?? true);
+        $mrh_pa_has_data = false;
+        if ($mrh_pa_attrs) {
+            $mrh_pa_is_seed = (int)($mrh_pa_attrs['is_seed'] ?? 1);
+            $mrh_pa_has_custom = !empty($mrh_pa_attrs['custom_fields']) && $mrh_pa_attrs['custom_fields'] !== '[]';
+            $mrh_pa_has_pictos = !empty($mrh_pa_attrs['pictos']) && $mrh_pa_attrs['pictos'] !== '[]';
+            $mrh_pa_fields_ok = (int)($mrh_pa_attrs['fields_filled'] ?? 0) >= $mrh_pa_min_fields;
+
+            // Non-Seed: show if custom_fields OR pictos exist (no min_fields requirement)
+            // Seed: show if fields_filled >= min_fields (existing logic)
+            if ($mrh_pa_is_seed === 0) {
+                $mrh_pa_has_data = $mrh_pa_has_custom || $mrh_pa_has_pictos || $mrh_pa_fields_ok;
+            } else {
+                $mrh_pa_has_data = $mrh_pa_fields_ok;
+            }
+
+            if ($mrh_pa_has_data) {
+                $mrh_pa_struct_badges = MrhProductAttributes::buildBadgeHTML($mrh_pa_attrs);
+                $mrh_pa_item['MRH_MINI_TABLE'] = MrhProductAttributes::buildMiniTable($mrh_pa_attrs, 'listing');
+                $mrh_pa_item['MRH_IS_SEED'] = (bool)$mrh_pa_is_seed;
+            } else {
+                $mrh_pa_item['MRH_MINI_TABLE'] = '';
+                $mrh_pa_item['MRH_IS_SEED'] = ($mrh_pa_is_non_seed_category) ? false : (bool)$mrh_pa_is_seed;
+            }
         } else {
             $mrh_pa_item['MRH_MINI_TABLE'] = '';
             $mrh_pa_item['MRH_IS_SEED'] = ($mrh_pa_is_non_seed_category) ? false : true;
