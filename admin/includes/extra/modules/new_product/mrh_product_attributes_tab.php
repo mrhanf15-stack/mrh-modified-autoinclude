@@ -5,6 +5,23 @@
  *
  * Injects the "Eigenschaften (MRH)" tab into the product edit form.
  *
+ * Features v1.7.0:
+ * - Standardfelder bei neuen Produkten ausgeblendet (leerer Tab)
+ * - Felder werden sichtbar wenn KI befuellt oder Preset gewaehlt wird
+ * - Bereits gespeicherte Felder bleiben beim Laden erhalten
+ *
+ * Features v1.6.0:
+ * - Nur aktive Sprachen anzeigen (WHERE status = 1)
+ * - Custom Fields synchron in allen Sprachen hinzufuegen/loeschen
+ * - Label-Sync: Feldname wird in allen Sprachen gleichzeitig aktualisiert
+ * - KI-Befuellung: custom_fields werden in alle Sprachen uebersetzt
+ * - data-sync-idx fuer Sprach-uebergreifende Feld-Zuordnung
+ *
+ * Features v1.5.0:
+ * - Titel-Feld editierbar in Icon-Liste (Inline-Input statt statischer Text)
+ * - Leerer Titel = kein Text neben Icon im Frontend
+ * - Icon-Name nicht mehr als Default-Titel beim Hinzufuegen
+ *
  * Features v1.4.0:
  * - 4 Preset buttons (Feminisiert | Autoflowering | Regulaer | Auto Regulaer)
  * - Language tabs with all standard fields
@@ -50,7 +67,7 @@ if ($mrh_pa_products_id > 0 && class_exists('MrhProductAttributes')) {
 
 // Get languages
 $mrh_pa_languages = [];
-$mrh_pa_lang_q = xtc_db_query("SELECT languages_id, name, code, image, directory FROM languages ORDER BY sort_order");
+$mrh_pa_lang_q = xtc_db_query("SELECT languages_id, name, code, image, directory FROM languages WHERE status = 1 ORDER BY sort_order");
 while ($mrh_pa_lang_row = xtc_db_fetch_array($mrh_pa_lang_q)) {
     $mrh_pa_languages[] = $mrh_pa_lang_row;
 }
@@ -377,6 +394,36 @@ $mrh_pa_badge_base = 'templates/tpl_mrh_2026/img/badges/';
 #mrh-pa-container .mrh-pa-quickpick-btn .qp-color { width: 20px; height: 20px; padding: 0; border: 1px solid #aaa; border-radius: 50%; cursor: pointer; }
 #mrh-pa-container .mrh-pa-quickpick-btn .qp-size-input { width: 40px; padding: 1px 3px; border: 1px solid #aaa; border-radius: 3px; font-size: 10px; text-align: center; }
 #mrh-pa-container .mrh-pa-quickpick-btn .qp-title-input { width: 80px; padding: 1px 3px; border: 1px solid #aaa; border-radius: 3px; font-size: 10px; }
+
+/* Eigene Badge-Presets */
+#mrh-pa-container .mrh-pa-presets {
+    margin-bottom: 12px; padding: 10px; background: #f0f4ff; border: 1px solid #b8c9e8; border-radius: 6px;
+}
+#mrh-pa-container .mrh-pa-presets-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+}
+#mrh-pa-container .mrh-pa-presets-title { font-size: 12px; font-weight: 700; color: #2c3e50; }
+#mrh-pa-container .mrh-pa-btn-save-preset {
+    padding: 4px 12px; font-size: 11px; background: #3498db; color: #fff; border: none;
+    border-radius: 4px; cursor: pointer; font-weight: 600; transition: background 0.2s;
+}
+#mrh-pa-container .mrh-pa-btn-save-preset:hover { background: #2980b9; }
+#mrh-pa-container .mrh-pa-presets-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+#mrh-pa-container .mrh-pa-preset-card {
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
+    background: #fff; border: 2px solid #b8c9e8; border-radius: 8px; cursor: pointer;
+    font-size: 12px; transition: all 0.15s; white-space: nowrap; position: relative;
+}
+#mrh-pa-container .mrh-pa-preset-card:hover { border-color: #3498db; background: #eef4ff; transform: scale(1.02); }
+#mrh-pa-container .mrh-pa-preset-card .preset-name { font-weight: 600; color: #2c3e50; margin-right: 4px; }
+#mrh-pa-container .mrh-pa-preset-card .preset-icons { display: inline-flex; gap: 3px; align-items: center; }
+#mrh-pa-container .mrh-pa-preset-card .preset-delete {
+    position: absolute; top: -6px; right: -6px; width: 16px; height: 16px;
+    background: #e74c3c; color: #fff; border: none; border-radius: 50%; cursor: pointer;
+    font-size: 10px; line-height: 16px; text-align: center; display: none; padding: 0;
+}
+#mrh-pa-container .mrh-pa-preset-card:hover .preset-delete { display: block; }
+
 #mrh-pa-container .mrh-pa-style-switcher { display: inline-flex; gap: 4px; margin: 0 8px; }
 #mrh-pa-container .mrh-pa-style-btn { padding: 3px 10px; border: 1px solid #ccc; border-radius: 4px; background: #f5f5f5; cursor: pointer; font-size: 11px; font-weight: 600; }
 #mrh-pa-container .mrh-pa-style-btn:hover { background: #e0e0e0; }
@@ -487,13 +534,41 @@ $mrh_pa_badge_base = 'templates/tpl_mrh_2026/img/badges/';
             <div class="mrh-pa-lang-panel <?php echo $idx === 0 ? 'active' : ''; ?>"
                  id="mrh-pa-lang-<?php echo $lid; ?>">
 
+                <?php
+                    // Determine if this is a new product (no saved data yet)
+                    $mrh_pa_is_new_product = empty($mrh_pa_all_attrs);
+                    // Determine is_seed status from first language attrs
+                    $mrh_pa_is_seed_val = 1; // default: seed
+                    if (!empty($mrh_pa_all_attrs)) {
+                        $first_lang_attrs = reset($mrh_pa_all_attrs);
+                        $mrh_pa_is_seed_val = (int)($first_lang_attrs['is_seed'] ?? 1);
+                    }
+                    // Seed-specific fields that should be hidden for Non-Seed products
+                    $mrh_pa_seed_only_fields = ['gender', 'flowering_type', 'type', 'thc', 'cbd',
+                        'cross_genetics', 'flowering_time', 'yield_indoor', 'harvest_time',
+                        'yield_outdoor', 'height_indoor', 'height_outdoor', 'climate', 'effect', 'taste'];
+                ?>
                 <?php foreach ($mrh_pa_fields as $field_key => $field_def): ?>
                     <?php
                         $row_class = '';
                         if ($field_def['priority'] === 'prio') $row_class = 'priority';
                         elseif ($field_def['priority'] === 'alt') $row_class = 'alt-priority';
+                        // Check if field has a real value (not null, not empty string)
+                        $field_val = $attrs[$field_key] ?? null;
+                        $field_has_value = ($field_val !== null && $field_val !== '');
+                        // Hide field if:
+                        // 1. New product (no data in DB at all), OR
+                        // 2. Existing product but field has no value, OR
+                        // 3. Non-Seed product and field is seed-specific (unless it has a value)
+                        $is_seed_only = in_array($field_key, $mrh_pa_seed_only_fields);
+                        $hide_field = '';
+                        if ($mrh_pa_is_new_product) {
+                            $hide_field = 'display:none;';
+                        } elseif (!$field_has_value) {
+                            $hide_field = 'display:none;';
+                        }
                     ?>
-                    <div class="mrh-pa-field-row <?php echo $row_class; ?>" draggable="true" data-field-key="<?php echo $field_key; ?>">
+                    <div class="mrh-pa-field-row <?php echo $row_class; ?>" draggable="true" data-field-key="<?php echo $field_key; ?>" style="<?php echo $hide_field; ?>">
                         <span class="field-drag-handle" title="Ziehen zum Sortieren">&#9776;</span>
                         <div class="mrh-pa-field-label">
                             <?php echo $field_def['label']; ?>
@@ -524,7 +599,7 @@ $mrh_pa_badge_base = 'templates/tpl_mrh_2026/img/badges/';
                                        placeholder="<?php echo htmlspecialchars($field_def['label']); ?>">
                             <?php endif; ?>
                         </div>
-                        <button type="button" class="field-remove-btn" onclick="this.closest('.mrh-pa-field-row').style.display='none'; this.closest('.mrh-pa-field-row').querySelectorAll('input,select').forEach(function(e){e.disabled=true;})" title="Feld ausblenden">&times;</button>
+                        <button type="button" class="field-remove-btn" onclick="mrhPaRemoveStandardField(this, '<?php echo $field_key; ?>')" title="Feld ausblenden">&times;</button>
                     </div>
                 <?php endforeach; ?>
 
@@ -571,13 +646,14 @@ $mrh_pa_badge_base = 'templates/tpl_mrh_2026/img/badges/';
                     }
                     $custom = $custom_filtered;
                     foreach ($custom as $ci => $cf): ?>
-                        <div class="mrh-pa-field-row mrh-pa-custom-row" draggable="true">
+                        <div class="mrh-pa-field-row mrh-pa-custom-row" draggable="true" data-sync-idx="existing_<?php echo $ci; ?>">
                             <span class="mrh-pa-field-drag" title="Drag zum Sortieren">&#9776;</span>
                             <div class="mrh-pa-field-input" style="width:180px;flex:none;">
                                 <input type="text"
                                        name="mrh_pa[<?php echo $lid; ?>][custom][<?php echo $ci; ?>][label]"
                                        value="<?php echo htmlspecialchars($cf['label'] ?? ''); ?>"
-                                       placeholder="Feldname">
+                                       placeholder="Feldname"
+                                       oninput="mrhPaSyncCustomLabel('existing_<?php echo $ci; ?>', this.value)">
                             </div>
                             <div class="mrh-pa-field-input">
                                 <input type="text"
@@ -586,7 +662,7 @@ $mrh_pa_badge_base = 'templates/tpl_mrh_2026/img/badges/';
                                        placeholder="Wert">
                             </div>
                             <button type="button" class="mrh-pa-btn mrh-pa-btn-secondary"
-                                    onclick="this.closest('.mrh-pa-custom-row').remove()"
+                                    onclick="mrhPaRemoveCustomField('existing_<?php echo $ci; ?>')"
                                     title="Entfernen">&times;</button>
                         </div>
                     <?php endforeach; ?>
@@ -663,6 +739,21 @@ $mrh_pa_badge_base = 'templates/tpl_mrh_2026/img/badges/';
                         echo '</span></span>';
                     }
                     ?>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- EIGENE BADGE-PRESETS (Speichern/Laden/Loeschen)        -->
+            <!-- ============================================================ -->
+            <div class="mrh-pa-presets">
+                <div class="mrh-pa-presets-header">
+                    <span class="mrh-pa-presets-title"><span class="fa-solid fa-bookmark"></span> Eigene Badge-Presets (Speichern &amp; Wiederverwenden)</span>
+                    <button type="button" class="mrh-pa-btn mrh-pa-btn-save-preset" onclick="mrhPaSavePresetDialog()" title="Aktuelle Icons als Preset speichern">
+                        <span class="fa-solid fa-floppy-disk"></span> Aktuelles als Preset speichern
+                    </button>
+                </div>
+                <div class="mrh-pa-presets-grid" id="mrh-pa-presets-grid">
+                    <span style="color:#999;font-size:12px;" id="mrh-pa-presets-empty">Noch keine eigenen Presets gespeichert.</span>
                 </div>
             </div>
 
@@ -816,7 +907,7 @@ function mrhPaRenderIcons() {
         item.innerHTML =
             '<span class="drag-handle" title="Ziehen zum Sortieren">&#9776;</span>' +
             badgePreviewHtml +
-            '<span class="icon-title" title="' + mrhPaEsc(p.title || iconVal) + '">' + mrhPaEsc(p.title || iconVal) + '</span>' +
+            '<input type="text" class="icon-edit-title" value="' + mrhPaEsc(p.title || '') + '" placeholder="' + mrhPaEsc(iconVal.replace('fa-','').replace(/-/g,' ')) + '" onchange="mrhPaEditIconTitle(' + i + ', this.value)" title="Anzeigename (leer = kein Text)" style="width:90px;font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;">' +
             colorHtml + bgColorHtml + bdColorHtml +
             '<input type="number" class="icon-edit-size" value="' + sizeNum + '" min="10" max="48" onchange="mrhPaEditIconSize(' + i + ', this.value)" title="Groesse (px)"> px' +
             '<span class="icon-remove" onclick="mrhPaRemoveIcon(' + i + ')" title="Entfernen">&times;</span>';
@@ -882,6 +973,13 @@ function mrhPaEditIconBorderColor(idx, color) {
     }
 }
 
+function mrhPaEditIconTitle(idx, title) {
+    if (mrhPaCurrentPictos[idx]) {
+        mrhPaCurrentPictos[idx].title = title.trim();
+        document.getElementById('mrh-pa-pictos-json').value = JSON.stringify(mrhPaCurrentPictos);
+    }
+}
+
 function mrhPaRemoveIcon(idx) {
     mrhPaCurrentPictos.splice(idx, 1);
     mrhPaRenderIcons();
@@ -940,7 +1038,7 @@ function mrhPaAddIconFromLibrary(iconClass, style) {
     if (existIdx >= 0) {
         mrhPaCurrentPictos.splice(existIdx, 1);
     } else {
-        var title = document.getElementById('mrh-pa-add-title').value.trim() || iconClass.replace('fa-', '').replace(/-/g, ' ');
+        var title = document.getElementById('mrh-pa-add-title').value.trim();
         var color = document.getElementById('mrh-pa-add-color').value || '#333333';
         var sizeVal = parseInt(document.getElementById('mrh-pa-add-size').value) || 16;
 
@@ -1200,6 +1298,11 @@ function mrhPaApplyPreset(preset) {
 
     var panels = document.querySelectorAll('.mrh-pa-lang-panel');
     panels.forEach(function(panel) {
+        // When a preset is applied, show ALL standard field rows (they may be hidden for new products)
+        panel.querySelectorAll('.mrh-pa-field-row[data-field-key]').forEach(function(row) {
+            row.style.display = '';
+        });
+
         var genderSel = panel.querySelector('select[data-field="gender"]');
         var flowerSel = panel.querySelector('select[data-field="flowering_type"]');
 
@@ -1231,25 +1334,72 @@ function mrhPaSwitchLang(langId, el) {
 }
 
 // ============================================================
-// CUSTOM FIELDS
+// Language IDs for sync (used by all sync functions below)
+// ============================================================
+var mrhPaActiveLangIds = [<?php echo implode(',', array_column($mrh_pa_languages, 'languages_id')); ?>];
+
+// ============================================================
+// STANDARD FIELD REMOVE (sync across all language tabs)
+// ============================================================
+function mrhPaRemoveStandardField(btn, fieldKey) {
+    // Hide and disable in ALL language panels, not just the current one
+    for (var li = 0; li < mrhPaActiveLangIds.length; li++) {
+        var langId = mrhPaActiveLangIds[li];
+        var panel = document.getElementById('mrh-pa-lang-' + langId);
+        if (!panel) continue;
+        var rows = panel.querySelectorAll('.mrh-pa-field-row[data-field-key="' + fieldKey + '"]');
+        rows.forEach(function(row) {
+            row.style.display = 'none';
+            row.querySelectorAll('input, select').forEach(function(el) {
+                el.disabled = true;
+            });
+        });
+    }
+}
+
+// ============================================================
+// CUSTOM FIELDS (v1.5.0 - Sprach-Synchronisation)
 // ============================================================
 var mrhPaCustomCounter = <?php echo max(count($custom ?? []), 0) + 10; ?>;
-function mrhPaAddCustomField(langId) {
-    var container = document.getElementById('mrh-pa-custom-' + langId);
-    if (!container) return;
+function mrhPaAddCustomField(triggerLangId) {
     var idx = mrhPaCustomCounter++;
-    var row = document.createElement('div');
-    row.className = 'mrh-pa-field-row mrh-pa-custom-row';
-    row.setAttribute('draggable', 'true');
-    row.innerHTML = '<span class="mrh-pa-field-drag" title="Drag zum Sortieren">&#9776;</span>' +
-        '<div class="mrh-pa-field-input" style="width:180px;flex:none;">' +
-        '<input type="text" name="mrh_pa['+langId+'][custom]['+idx+'][label]" placeholder="Feldname">' +
-        '</div><div class="mrh-pa-field-input">' +
-        '<input type="text" name="mrh_pa['+langId+'][custom]['+idx+'][value]" placeholder="Wert">' +
-        '</div><button type="button" class="mrh-pa-btn mrh-pa-btn-secondary" onclick="this.closest(\'.mrh-pa-custom-row\').remove()" title="Entfernen">&times;</button>';
-    container.appendChild(row);
-    // Init DnD for the new row
-    mrhPaInitCustomFieldDnD(row);
+    // Add field to ALL language panels (sync)
+    for (var li = 0; li < mrhPaActiveLangIds.length; li++) {
+        var langId = mrhPaActiveLangIds[li];
+        var container = document.getElementById('mrh-pa-custom-' + langId);
+        if (!container) continue;
+        var row = document.createElement('div');
+        row.className = 'mrh-pa-field-row mrh-pa-custom-row';
+        row.setAttribute('draggable', 'true');
+        row.setAttribute('data-sync-idx', idx);
+        row.innerHTML = '<span class="mrh-pa-field-drag" title="Drag zum Sortieren">&#9776;</span>' +
+            '<div class="mrh-pa-field-input" style="width:180px;flex:none;">' +
+            '<input type="text" name="mrh_pa['+langId+'][custom]['+idx+'][label]" placeholder="Feldname" oninput="mrhPaSyncCustomLabel('+idx+', this.value)">' +
+            '</div><div class="mrh-pa-field-input">' +
+            '<input type="text" name="mrh_pa['+langId+'][custom]['+idx+'][value]" placeholder="Wert">' +
+            '</div><button type="button" class="mrh-pa-btn mrh-pa-btn-secondary" onclick="mrhPaRemoveCustomField('+idx+')" title="Entfernen">&times;</button>';
+        container.appendChild(row);
+        mrhPaInitCustomFieldDnD(row);
+    }
+}
+
+// Sync label across all language panels when edited
+function mrhPaSyncCustomLabel(syncIdx, newLabel) {
+    var rows = document.querySelectorAll('.mrh-pa-custom-row[data-sync-idx="' + syncIdx + '"]');
+    for (var i = 0; i < rows.length; i++) {
+        var labelInput = rows[i].querySelector('input[name*="[label]"]');
+        if (labelInput && labelInput !== document.activeElement) {
+            labelInput.value = newLabel;
+        }
+    }
+}
+
+// Remove custom field from ALL language panels
+function mrhPaRemoveCustomField(syncIdx) {
+    var rows = document.querySelectorAll('.mrh-pa-custom-row[data-sync-idx="' + syncIdx + '"]');
+    for (var i = 0; i < rows.length; i++) {
+        rows[i].remove();
+    }
 }
 
 // ============================================================
@@ -1302,7 +1452,15 @@ function mrhPaFillFields(attrs) {
         for (var field in langAttrs) {
             if (field === 'custom_fields' || field === 'is_seed' || field === 'ai_confidence' || field === 'pictos' || field === 'cannabis_cups') continue;
             var el = document.getElementById('mrh_pa_' + langId + '_' + field);
-            if (el) { el.value = langAttrs[field]; mrhPaHighlight(el); }
+            if (el) {
+                el.value = langAttrs[field];
+                mrhPaHighlight(el);
+                // Show the field row if it was hidden (new product) and has a value
+                if (langAttrs[field] && langAttrs[field] !== '') {
+                    var fieldRow = el.closest('.mrh-pa-field-row');
+                    if (fieldRow) fieldRow.style.display = '';
+                }
+            }
         }
 
         if (langAttrs.custom_fields && Array.isArray(langAttrs.custom_fields)) {
@@ -1311,16 +1469,17 @@ function mrhPaFillFields(attrs) {
                 container.innerHTML = '';
                 for (var i = 0; i < langAttrs.custom_fields.length; i++) {
                     var cf = langAttrs.custom_fields[i];
-                    mrhPaCustomCounter++;
+                    var syncIdx = 'ai_' + mrhPaCustomCounter++;
                     var row = document.createElement('div');
                     row.className = 'mrh-pa-field-row mrh-pa-custom-row';
                     row.setAttribute('draggable', 'true');
+                    row.setAttribute('data-sync-idx', syncIdx);
                     row.innerHTML = '<span class="mrh-pa-field-drag" title="Drag zum Sortieren">&#9776;</span>' +
                         '<div class="mrh-pa-field-input" style="width:180px;flex:none;">' +
-                        '<input type="text" name="mrh_pa['+langId+'][custom]['+i+'][label]" value="' + mrhPaEsc(cf.label || '') + '" placeholder="Feldname">' +
+                        '<input type="text" name="mrh_pa['+langId+'][custom]['+i+'][label]" value="' + mrhPaEsc(cf.label || '') + '" placeholder="Feldname" oninput="mrhPaSyncCustomLabel(\'' + syncIdx + '\', this.value)">' +
                         '</div><div class="mrh-pa-field-input">' +
                         '<input type="text" name="mrh_pa['+langId+'][custom]['+i+'][value]" value="' + mrhPaEsc(cf.value || '') + '" placeholder="Wert">' +
-                        '</div><button type="button" class="mrh-pa-btn mrh-pa-btn-secondary" onclick="this.closest(\'.mrh-pa-custom-row\').remove()" title="Entfernen">&times;</button>';
+                        '</div><button type="button" class="mrh-pa-btn mrh-pa-btn-secondary" onclick="mrhPaRemoveCustomField(\'' + syncIdx + '\')" title="Entfernen">&times;</button>';
                     container.appendChild(row);
                     mrhPaInitCustomFieldDnD(row);
                     row.querySelectorAll('input').forEach(function(inp) { mrhPaHighlight(inp); });
@@ -1584,6 +1743,136 @@ function mrhPaGetFieldOrder() {
 
 
 // ============================================================
+// ICON PRESETS - Save/Load/Delete custom badge combinations
+// ============================================================
+
+function mrhPaLoadPresets() {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'mrh_product_attributes.php?action=get_icon_presets', true);
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            try {
+                var data = JSON.parse(xhr.responseText);
+                if (data.success) {
+                    mrhPaRenderPresets(data.presets);
+                }
+            } catch(e) { console.error('Preset load error:', e); }
+        }
+    };
+    xhr.send();
+}
+
+function mrhPaRenderPresets(presets) {
+    var grid = document.getElementById('mrh-pa-presets-grid');
+    var empty = document.getElementById('mrh-pa-presets-empty');
+    if (!grid) return;
+
+    grid.innerHTML = '';
+    if (!presets || presets.length === 0) {
+        grid.innerHTML = '<span style="color:#999;font-size:12px;">Noch keine eigenen Presets gespeichert.</span>';
+        return;
+    }
+
+    presets.forEach(function(preset) {
+        var card = document.createElement('div');
+        card.className = 'mrh-pa-preset-card';
+        card.title = 'Klick zum Anwenden: ' + preset.name;
+        card.setAttribute('data-preset-key', preset.key);
+
+        // Build icon preview
+        var iconsHtml = '<span class="preset-icons">';
+        if (preset.icons && preset.icons.length > 0) {
+            var maxShow = Math.min(preset.icons.length, 8);
+            for (var i = 0; i < maxShow; i++) {
+                var ic = preset.icons[i];
+                if (ic.icon && ic.icon.indexOf('svg:') === 0) {
+                    iconsHtml += '<img src="/' + ic.icon.replace('svg:', '') + '" style="width:14px;height:14px;vertical-align:middle;">';
+                } else if (ic.icon) {
+                    var prefix = ic.style === 'brands' ? 'fa-brands' : (ic.style === 'regular' ? 'fa-regular' : 'fa-solid');
+                    iconsHtml += '<span class="' + prefix + ' ' + ic.icon + '" style="color:' + (ic.color || '#333') + ';font-size:14px;"></span>';
+                }
+            }
+            if (preset.icons.length > 8) {
+                iconsHtml += '<span style="font-size:10px;color:#999;">+' + (preset.icons.length - 8) + '</span>';
+            }
+        }
+        iconsHtml += '</span>';
+
+        card.innerHTML = '<span class="preset-name">' + mrhPaEsc(preset.name) + '</span>' +
+            iconsHtml +
+            '<button type="button" class="preset-delete" onclick="event.stopPropagation();mrhPaDeletePreset(\'' + mrhPaEsc(preset.key) + '\')" title="Preset loeschen">&times;</button>';
+
+        card.addEventListener('click', function() {
+            mrhPaApplyPreset(preset.icons);
+        });
+
+        grid.appendChild(card);
+    });
+}
+
+function mrhPaApplyPreset(icons) {
+    if (!icons || !Array.isArray(icons)) return;
+    // Replace current icons with preset icons
+    mrhPaCurrentPictos = JSON.parse(JSON.stringify(icons));
+    mrhPaRenderIcons();
+    // Flash the icon list to indicate change
+    var list = document.getElementById('mrh-pa-icon-list');
+    if (list) {
+        list.style.backgroundColor = '#ffffcc';
+        setTimeout(function() { list.style.backgroundColor = ''; }, 1500);
+    }
+}
+
+function mrhPaSavePresetDialog() {
+    if (!mrhPaCurrentPictos || mrhPaCurrentPictos.length === 0) {
+        alert('Keine Icons vorhanden. Fuege zuerst Icons hinzu, bevor du ein Preset speicherst.');
+        return;
+    }
+    var name = prompt('Preset-Name eingeben (z.B. "Schere", "LED Lampe", "Duenger"):');
+    if (!name || !name.trim()) return;
+    name = name.trim();
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', 'mrh_product_attributes.php?action=save_icon_preset', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            try {
+                var data = JSON.parse(xhr.responseText);
+                if (data.success) {
+                    mrhPaRenderPresets(data.presets);
+                } else {
+                    alert('Fehler: ' + (data.message || 'Unbekannt'));
+                }
+            } catch(e) { alert('Fehler: ' + e.message); }
+        }
+    };
+    xhr.send(JSON.stringify({
+        name: name,
+        icons: mrhPaCurrentPictos
+    }));
+}
+
+function mrhPaDeletePreset(presetKey) {
+    if (!confirm('Preset wirklich loeschen?')) return;
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', 'mrh_product_attributes.php?action=delete_icon_preset', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            try {
+                var data = JSON.parse(xhr.responseText);
+                if (data.success) {
+                    mrhPaRenderPresets(data.presets);
+                }
+            } catch(e) { console.error('Delete preset error:', e); }
+        }
+    };
+    xhr.send(JSON.stringify({ key: presetKey }));
+}
+
+// ============================================================
 // INIT ON PAGE LOAD
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
@@ -1593,6 +1882,7 @@ document.addEventListener('DOMContentLoaded', function() {
     mrhPaUpdateCupsPreview();
     mrhPaInitFieldDragDrop();
     mrhPaInitAllCustomFieldDnD();
+    mrhPaLoadPresets();
     // Note: Short description field remains visible (core shop field, must not be hidden)
 });
 </script>

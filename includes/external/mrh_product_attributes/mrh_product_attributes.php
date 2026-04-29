@@ -261,8 +261,14 @@ class MrhProductAttributes {
         $fields_filled = 0;
 
         foreach ($allowed as $col) {
-            if (isset($data[$col])) {
+            // Use array_key_exists instead of isset to detect explicit NULL values
+            if (array_key_exists($col, $data)) {
                 $val = $data[$col];
+                // NULL value = field was removed/cleared → store as SQL NULL
+                if ($val === null) {
+                    $fields[$col] = null; // will be written as SQL NULL
+                    continue;
+                }
                 if ($col === 'custom_fields' && is_array($val)) {
                     $val = json_encode($val, JSON_UNESCAPED_UNICODE);
                 }
@@ -298,7 +304,13 @@ class MrhProductAttributes {
 
         foreach ($fields as $col => $val) {
             $cols[] = '`' . $col . '`';
-            if (is_int($val) || is_float($val)) {
+            if ($val === null) {
+                // Explicit NULL value
+                $vals[] = 'NULL';
+                if ($col !== 'products_id' && $col !== 'language_id') {
+                    $updates[] = '`' . $col . '` = NULL';
+                }
+            } elseif (is_int($val) || is_float($val)) {
                 $vals[] = $val;
                 if ($col !== 'products_id' && $col !== 'language_id') {
                     $updates[] = '`' . $col . '` = ' . $val;
@@ -916,6 +928,59 @@ class MrhProductAttributes {
             $configs[$key] = self::getBadgeConfig($key);
         }
         return $configs;
+    }
+
+    // ============================================================
+    // ICON PRESETS - Save/Load/Delete custom badge combinations
+    // ============================================================
+
+    /**
+     * Save an icon preset (badge combination) to the config table.
+     *
+     * @param string $preset_name Human-readable name for the preset
+     * @param array $icons Array of icon objects [{icon, color, size, title, style, bgcolor, bordercolor}]
+     * @return bool
+     */
+    public static function saveIconPreset($preset_name, $icons) {
+        $key = 'icon_preset_' . md5($preset_name);
+        $data = json_encode([
+            'name' => $preset_name,
+            'icons' => $icons,
+            'created' => date('Y-m-d H:i:s')
+        ]);
+        return self::setConfig($key, $data);
+    }
+
+    /**
+     * Get all saved icon presets.
+     *
+     * @return array Array of presets [{name, icons, created}]
+     */
+    public static function getIconPresets() {
+        $presets = [];
+        $q = xtc_db_query("SELECT config_key, config_value FROM " . self::CONFIG_TABLE . "
+            WHERE config_key LIKE 'icon_preset_%' ORDER BY last_modified DESC");
+        while ($row = xtc_db_fetch_array($q)) {
+            $parsed = json_decode($row['config_value'], true);
+            if (is_array($parsed) && !empty($parsed['name'])) {
+                $parsed['key'] = $row['config_key'];
+                $presets[] = $parsed;
+            }
+        }
+        return $presets;
+    }
+
+    /**
+     * Delete an icon preset by its config key.
+     *
+     * @param string $preset_key The config_key (icon_preset_xxx)
+     * @return bool
+     */
+    public static function deleteIconPreset($preset_key) {
+        if (strpos($preset_key, 'icon_preset_') !== 0) return false;
+        xtc_db_query("DELETE FROM " . self::CONFIG_TABLE . "
+            WHERE config_key = '" . xtc_db_input($preset_key) . "'");
+        return true;
     }
 
     /**

@@ -350,6 +350,55 @@ if ($action === 'save_config' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ============================================================
+// AJAX: Save Icon Preset
+// ============================================================
+if ($action === 'save_icon_preset' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: application/json; charset=utf-8');
+    $raw = file_get_contents('php://input');
+    $data = json_decode($raw, true);
+    if (empty($data['name']) || !isset($data['icons']) || !is_array($data['icons'])) {
+        echo json_encode(['success' => false, 'message' => 'Name und Icons erforderlich']);
+        exit;
+    }
+    $name = trim($data['name']);
+    if (strlen($name) < 1 || strlen($name) > 100) {
+        echo json_encode(['success' => false, 'message' => 'Name muss 1-100 Zeichen lang sein']);
+        exit;
+    }
+    MrhProductAttributes::saveIconPreset($name, $data['icons']);
+    $presets = MrhProductAttributes::getIconPresets();
+    echo json_encode(['success' => true, 'message' => 'Preset gespeichert', 'presets' => $presets]);
+    exit;
+}
+
+// ============================================================
+// AJAX: Get Icon Presets
+// ============================================================
+if ($action === 'get_icon_presets') {
+    header('Content-Type: application/json; charset=utf-8');
+    $presets = MrhProductAttributes::getIconPresets();
+    echo json_encode(['success' => true, 'presets' => $presets]);
+    exit;
+}
+
+// ============================================================
+// AJAX: Delete Icon Preset
+// ============================================================
+if ($action === 'delete_icon_preset' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: application/json; charset=utf-8');
+    $raw = file_get_contents('php://input');
+    $data = json_decode($raw, true);
+    if (empty($data['key'])) {
+        echo json_encode(['success' => false, 'message' => 'Preset-Key erforderlich']);
+        exit;
+    }
+    MrhProductAttributes::deleteIconPreset($data['key']);
+    $presets = MrhProductAttributes::getIconPresets();
+    echo json_encode(['success' => true, 'message' => 'Preset geloescht', 'presets' => $presets]);
+    exit;
+}
+
+// ============================================================
 // AJAX: Stats
 // ============================================================
 if ($action === 'stats') {
