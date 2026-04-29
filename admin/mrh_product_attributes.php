@@ -416,6 +416,8 @@ $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'stats';
     <meta charset="utf-8">
     <title><?php echo defined('MRH_PA_HEADING_TITLE') ? MRH_PA_HEADING_TITLE : 'MRH Produkteigenschaften'; ?></title>
     <?php require(DIR_WS_INCLUDES . 'head.php'); ?>
+    <link rel="stylesheet" href="/templates/tpl_mrh_2026/css/fontawesome-7.css" />
+    <link rel="stylesheet" href="/templates/tpl_mrh_2026/css/fontawesome-6.css" />
     <style>
         .mrh-pa-admin { max-width: 1200px; margin: 20px auto; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         .mrh-pa-admin h1 { font-size: 24px; color: #2c3e50; margin-bottom: 5px; }
@@ -475,6 +477,71 @@ $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'stats';
             padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;
         }
         .mrh-pa-batch-config input[type="number"] { width: 80px; }
+
+        /* Badge Presets Tab */
+        .mrh-preset-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; }
+        .mrh-preset-item {
+            background: #fff; border: 2px solid #e0e0e0; border-radius: 10px; padding: 15px;
+            transition: all 0.2s; position: relative;
+        }
+        .mrh-preset-item:hover { border-color: #3498db; box-shadow: 0 2px 8px rgba(52,152,219,0.15); }
+        .mrh-preset-item .preset-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .mrh-preset-item .preset-name { font-weight: 700; font-size: 15px; color: #2c3e50; }
+        .mrh-preset-item .preset-actions { display: flex; gap: 6px; }
+        .mrh-preset-item .preset-actions button {
+            padding: 4px 10px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;
+            font-size: 11px; background: #f5f5f5; transition: all 0.15s;
+        }
+        .mrh-preset-item .preset-actions .btn-delete { color: #e74c3c; border-color: #e74c3c; }
+        .mrh-preset-item .preset-actions .btn-delete:hover { background: #e74c3c; color: #fff; }
+        .mrh-preset-item .preset-actions .btn-edit { color: #3498db; border-color: #3498db; }
+        .mrh-preset-item .preset-actions .btn-edit:hover { background: #3498db; color: #fff; }
+        .mrh-preset-item .preset-icons-preview { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .mrh-preset-item .preset-badge {
+            display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px;
+            border-radius: 6px; font-size: 12px; border: 1px solid #ddd; background: #f1f5f9;
+        }
+        .mrh-preset-item .preset-badge .fa, .mrh-preset-item .preset-badge .fa-solid,
+        .mrh-preset-item .preset-badge .fa-regular, .mrh-preset-item .preset-badge .fa-brands { font-size: 14px; }
+
+        /* Preset Editor (modal-like inline) */
+        .mrh-preset-editor { background: #f8f9fa; border: 2px solid #3498db; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+        .mrh-preset-editor h3 { margin-top: 0; color: #3498db; }
+        .mrh-preset-editor .editor-row { display: flex; gap: 15px; align-items: flex-start; margin-bottom: 15px; }
+        .mrh-preset-editor .editor-row label { width: 120px; font-weight: 600; font-size: 13px; padding-top: 8px; }
+        .mrh-preset-editor .editor-row input[type="text"] {
+            flex: 1; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;
+        }
+        .mrh-preset-editor .icon-list {
+            display: flex; flex-wrap: wrap; gap: 6px; min-height: 40px; padding: 10px;
+            background: #fff; border: 1px solid #ddd; border-radius: 6px;
+        }
+        .mrh-preset-editor .icon-chip {
+            display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px;
+            background: #fff; border: 2px solid #ddd; border-radius: 20px; font-size: 12px;
+        }
+        .mrh-preset-editor .icon-chip .remove { cursor: pointer; color: #e74c3c; font-weight: 700; margin-left: 4px; }
+        .mrh-preset-editor .icon-picker {
+            max-height: 200px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 6px;
+            padding: 10px; background: #fff; border: 1px solid #ddd; border-radius: 6px; margin-top: 8px;
+        }
+        .mrh-preset-editor .icon-picker-item {
+            display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+            width: 50px; height: 50px; border: 1px solid #eee; border-radius: 6px; cursor: pointer;
+            transition: all 0.15s; font-size: 18px; color: #333;
+        }
+        .mrh-preset-editor .icon-picker-item:hover { border-color: #27ae60; background: #f0fdf4; transform: scale(1.05); }
+        .mrh-preset-editor .icon-picker-item .icon-name { font-size: 8px; color: #999; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; max-width: 48px; text-align: center; }
+        .mrh-preset-editor .search-row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+        .mrh-preset-editor .search-row input {
+            flex: 1; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;
+        }
+        .mrh-preset-editor .style-btns { display: inline-flex; gap: 4px; }
+        .mrh-preset-editor .style-btn {
+            padding: 3px 10px; border: 1px solid #ccc; border-radius: 4px; background: #f5f5f5;
+            cursor: pointer; font-size: 11px; font-weight: 600;
+        }
+        .mrh-preset-editor .style-btn.active { background: #27ae60; color: #fff; border-color: #27ae60; }
     </style>
 </head>
 <body>
@@ -493,6 +560,9 @@ $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'stats';
         </a>
         <a href="?tab=migration" class="<?php echo $active_tab === 'migration' ? 'active' : ''; ?>">
             <span class="fa fa-database"></span> <?php echo defined('MRH_PA_TAB_MIGRATION') ? MRH_PA_TAB_MIGRATION : 'Migration'; ?>
+        </a>
+        <a href="?tab=presets" class="<?php echo $active_tab === 'presets' ? 'active' : ''; ?>">
+            <span class="fa fa-bookmark"></span> Badge-Presets
         </a>
     </div>
 
@@ -650,6 +720,68 @@ $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'stats';
             </div>
 
             <div class="mrh-pa-log" id="mrh-pa-ai-log" style="margin-top:15px;display:none;"></div>
+        </div>
+    </div>
+
+    <!-- Badge Presets Panel -->
+    <div class="mrh-pa-panel <?php echo $active_tab === 'presets' ? 'active' : ''; ?>" id="panel-presets">
+        <div class="mrh-pa-card">
+            <h3><span class="fa fa-bookmark"></span> Badge-Presets verwalten</h3>
+            <p>Erstelle und verwalte wiederverwendbare Badge-Kombinationen. Diese Presets stehen dann beim Bearbeiten jedes Produkts zur Verfuegung.</p>
+
+            <button class="mrh-pa-btn mrh-pa-btn-info" onclick="presetShowEditor()" style="margin-bottom:20px;">
+                <span class="fa fa-plus"></span> Neues Preset erstellen
+            </button>
+
+            <!-- Inline Editor (hidden by default) -->
+            <div class="mrh-preset-editor" id="preset-editor" style="display:none;">
+                <h3><span class="fa fa-edit"></span> <span id="preset-editor-title">Neues Preset</span></h3>
+                <input type="hidden" id="preset-edit-key" value="">
+
+                <div class="editor-row">
+                    <label>Preset-Name:</label>
+                    <input type="text" id="preset-edit-name" placeholder="z.B. Schere, LED Lampe, Duenger...">
+                </div>
+
+                <div class="editor-row">
+                    <label>Icons:</label>
+                    <div style="flex:1;">
+                        <div class="icon-list" id="preset-icon-list">
+                            <span style="color:#999;font-size:12px;">Klicke unten auf Icons zum Hinzufuegen</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="editor-row">
+                    <label>Icon suchen:</label>
+                    <div style="flex:1;">
+                        <div class="search-row">
+                            <div class="style-btns">
+                                <button type="button" class="style-btn active" data-style="solid" onclick="presetSwitchStyle(this,'solid')">Solid</button>
+                                <button type="button" class="style-btn" data-style="regular" onclick="presetSwitchStyle(this,'regular')">Regular</button>
+                                <button type="button" class="style-btn" data-style="brands" onclick="presetSwitchStyle(this,'brands')">Brands</button>
+                            </div>
+                            <input type="text" id="preset-icon-search" placeholder="Icon-Name suchen..." oninput="presetFilterIcons()">
+                            <span id="preset-icon-count" style="font-size:11px;color:#999;"></span>
+                        </div>
+                        <div class="icon-picker" id="preset-icon-picker"></div>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:10px;margin-top:15px;">
+                    <button class="mrh-pa-btn mrh-pa-btn-primary" onclick="presetSave()">
+                        <span class="fa fa-save"></span> Preset speichern
+                    </button>
+                    <button class="mrh-pa-btn" onclick="presetHideEditor()" style="background:#95a5a6;color:#fff;">
+                        <span class="fa fa-times"></span> Abbrechen
+                    </button>
+                </div>
+            </div>
+
+            <!-- Preset List -->
+            <div class="mrh-preset-list" id="preset-list">
+                <p style="color:#999;">Lade Presets...</p>
+            </div>
         </div>
     </div>
 </div>
@@ -873,6 +1005,243 @@ function mrhPaStopAiBatch() {
     var log = document.getElementById('mrh-pa-ai-log');
     log.innerHTML += '<div class="warn">[Stop] Batch wird nach aktuellem Durchlauf gestoppt...</div>';
 }
+
+// ============================================================
+// BADGE PRESETS TAB
+// ============================================================
+var presetAllIcons = <?php
+$fa7_json = DIR_FS_CATALOG . 'includes/external/mrh_product_attributes/fa7_icons.json';
+if (file_exists($fa7_json)) {
+    echo file_get_contents($fa7_json);
+} else {
+    echo json_encode([
+        ['n'=>'fa-leaf','s'=>['solid']],['n'=>'fa-star','s'=>['solid','regular']],['n'=>'fa-heart','s'=>['solid','regular']],
+        ['n'=>'fa-fire','s'=>['solid']],['n'=>'fa-bolt','s'=>['solid']],['n'=>'fa-trophy','s'=>['solid']],
+        ['n'=>'fa-scissors','s'=>['solid']],['n'=>'fa-lightbulb','s'=>['solid','regular']],['n'=>'fa-wrench','s'=>['solid']],
+        ['n'=>'fa-seedling','s'=>['solid']],['n'=>'fa-cannabis','s'=>['solid']],['n'=>'fa-droplet','s'=>['solid']]
+    ]);
+}
+?>;
+var presetCurrentStyle = 'solid';
+var presetEditIcons = [];
+
+function presetEsc(str) {
+    if (!str) return '';
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+}
+
+// Show/hide editor
+function presetShowEditor(editKey) {
+    var editor = document.getElementById('preset-editor');
+    editor.style.display = 'block';
+    if (editKey) {
+        document.getElementById('preset-editor-title').textContent = 'Preset bearbeiten';
+        document.getElementById('preset-edit-key').value = editKey;
+        // Load existing preset data
+        fetch('mrh_product_attributes.php?action=get_icon_presets')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success && data.presets) {
+                    var p = data.presets.find(function(x) { return x.key === editKey; });
+                    if (p) {
+                        document.getElementById('preset-edit-name').value = p.name;
+                        presetEditIcons = JSON.parse(JSON.stringify(p.icons || []));
+                        presetRenderIconList();
+                    }
+                }
+            });
+    } else {
+        document.getElementById('preset-editor-title').textContent = 'Neues Preset';
+        document.getElementById('preset-edit-key').value = '';
+        document.getElementById('preset-edit-name').value = '';
+        presetEditIcons = [];
+        presetRenderIconList();
+    }
+    presetBuildPicker();
+    editor.scrollIntoView({ behavior: 'smooth' });
+}
+
+function presetHideEditor() {
+    document.getElementById('preset-editor').style.display = 'none';
+}
+
+// Render current icons in editor
+function presetRenderIconList() {
+    var list = document.getElementById('preset-icon-list');
+    list.innerHTML = '';
+    if (presetEditIcons.length === 0) {
+        list.innerHTML = '<span style="color:#999;font-size:12px;">Klicke unten auf Icons zum Hinzufuegen</span>';
+        return;
+    }
+    for (var i = 0; i < presetEditIcons.length; i++) {
+        var ic = presetEditIcons[i];
+        var chip = document.createElement('span');
+        chip.className = 'icon-chip';
+        var prefix = (ic.style === 'brands') ? 'fa-brands' : (ic.style === 'regular' ? 'fa-regular' : 'fa-solid');
+        chip.innerHTML = '<span class="' + prefix + ' ' + presetEsc(ic.icon) + '" style="color:' + presetEsc(ic.color || '#333') + ';font-size:16px;"></span>' +
+            '<span style="font-size:11px;">' + presetEsc(ic.title || ic.icon.replace('fa-','')) + '</span>' +
+            '<span class="remove" data-idx="' + i + '" onclick="presetRemoveIcon(' + i + ')">&times;</span>';
+        list.appendChild(chip);
+    }
+}
+
+// Add icon from picker
+function presetAddIcon(iconName, style) {
+    presetEditIcons.push({
+        icon: iconName,
+        color: '#333333',
+        bgcolor: '#f1f5f9',
+        bordercolor: '#dddddd',
+        title: '',
+        size: '16',
+        style: style || 'solid'
+    });
+    presetRenderIconList();
+}
+
+// Remove icon
+function presetRemoveIcon(idx) {
+    presetEditIcons.splice(idx, 1);
+    presetRenderIconList();
+}
+
+// Build icon picker
+function presetBuildPicker() {
+    presetFilterIcons();
+}
+
+function presetFilterIcons() {
+    var picker = document.getElementById('preset-icon-picker');
+    var search = (document.getElementById('preset-icon-search').value || '').toLowerCase();
+    var countEl = document.getElementById('preset-icon-count');
+    picker.innerHTML = '';
+    var count = 0;
+    var maxShow = 200;
+
+    for (var i = 0; i < presetAllIcons.length; i++) {
+        var ic = presetAllIcons[i];
+        if (ic.s.indexOf(presetCurrentStyle) === -1) continue;
+        if (search && ic.n.indexOf(search) === -1) continue;
+        if (count >= maxShow) break;
+        count++;
+
+        var item = document.createElement('div');
+        item.className = 'icon-picker-item';
+        var prefix = presetCurrentStyle === 'brands' ? 'fa-brands' : (presetCurrentStyle === 'regular' ? 'fa-regular' : 'fa-solid');
+        item.innerHTML = '<span class="' + prefix + ' ' + presetEsc(ic.n) + '"></span>' +
+            '<span class="icon-name">' + presetEsc(ic.n.replace('fa-','')) + '</span>';
+        item.setAttribute('data-icon', ic.n);
+        item.setAttribute('data-style', presetCurrentStyle);
+        item.addEventListener('click', function() {
+            presetAddIcon(this.getAttribute('data-icon'), this.getAttribute('data-style'));
+        });
+        picker.appendChild(item);
+    }
+    countEl.textContent = count + ' Icons' + (count >= maxShow ? ' (max)' : '');
+}
+
+function presetSwitchStyle(btn, style) {
+    presetCurrentStyle = style;
+    document.querySelectorAll('.mrh-preset-editor .style-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    presetFilterIcons();
+}
+
+// Save preset
+function presetSave() {
+    var name = document.getElementById('preset-edit-name').value.trim();
+    if (!name) { alert('Bitte einen Namen eingeben.'); return; }
+    if (presetEditIcons.length === 0) { alert('Bitte mindestens ein Icon hinzufuegen.'); return; }
+
+    var editKey = document.getElementById('preset-edit-key').value;
+
+    var payload = { name: name, icons: presetEditIcons };
+    if (editKey) payload.key = editKey;
+
+    fetch('mrh_product_attributes.php?action=save_icon_preset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            presetHideEditor();
+            presetLoadAll();
+        } else {
+            alert('Fehler: ' + (data.message || 'Unbekannt'));
+        }
+    })
+    .catch(function(e) { alert('Fehler: ' + e.message); });
+}
+
+// Delete preset
+function presetDelete(key) {
+    if (!confirm('Preset wirklich loeschen?')) return;
+    fetch('mrh_product_attributes.php?action=delete_icon_preset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: key })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) presetLoadAll();
+    });
+}
+
+// Load and render all presets
+function presetLoadAll() {
+    fetch('mrh_product_attributes.php?action=get_icon_presets')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var list = document.getElementById('preset-list');
+            if (!data.success || !data.presets || data.presets.length === 0) {
+                list.innerHTML = '<p style="color:#999;font-size:14px;"><span class="fa fa-info-circle"></span> Noch keine Presets vorhanden. Klicke oben auf "Neues Preset erstellen" um zu beginnen.</p>';
+                return;
+            }
+            list.innerHTML = '';
+            data.presets.forEach(function(preset) {
+                var item = document.createElement('div');
+                item.className = 'mrh-preset-item';
+
+                // Build icon preview
+                var iconsHtml = '';
+                (preset.icons || []).forEach(function(ic) {
+                    var prefix = (ic.style === 'brands') ? 'fa-brands' : (ic.style === 'regular' ? 'fa-regular' : 'fa-solid');
+                    var bgStyle = 'background:' + presetEsc(ic.bgcolor || '#f1f5f9') + ';border-color:' + presetEsc(ic.bordercolor || '#ddd') + ';';
+                    iconsHtml += '<span class="preset-badge" style="' + bgStyle + '">' +
+                        '<span class="' + prefix + ' ' + presetEsc(ic.icon) + '" style="color:' + presetEsc(ic.color || '#333') + ';"></span>' +
+                        (ic.title ? '<span>' + presetEsc(ic.title) + '</span>' : '') +
+                        '</span>';
+                });
+
+                item.innerHTML =
+                    '<div class="preset-header">' +
+                        '<span class="preset-name"><span class="fa fa-bookmark" style="color:#3498db;margin-right:6px;"></span>' + presetEsc(preset.name) + '</span>' +
+                        '<div class="preset-actions">' +
+                            '<button class="btn-edit" onclick="presetShowEditor(\'' + presetEsc(preset.key) + '\')" title="Bearbeiten"><span class="fa fa-edit"></span> Bearbeiten</button>' +
+                            '<button class="btn-delete" onclick="presetDelete(\'' + presetEsc(preset.key) + '\')" title="Loeschen"><span class="fa fa-trash"></span></button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="preset-icons-preview">' + iconsHtml + '</div>' +
+                    '<div style="margin-top:8px;font-size:11px;color:#999;">' + (preset.icons ? preset.icons.length : 0) + ' Icons</div>';
+
+                list.appendChild(item);
+            });
+        })
+        .catch(function(e) {
+            document.getElementById('preset-list').innerHTML = '<p style="color:red;">Fehler beim Laden: ' + e.message + '</p>';
+        });
+}
+
+// Init presets tab on load
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('panel-presets') && document.getElementById('panel-presets').classList.contains('active')) {
+        presetLoadAll();
+    }
+});
 </script>
 
 <?php require(DIR_WS_INCLUDES . 'footer.php'); ?>
